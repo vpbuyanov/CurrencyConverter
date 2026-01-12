@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+
+# Android Studio / IntelliJ
+*.iml
+.idea/
+**/.idea/
+.kotlin/
+
+# Local SDK config
+local.properties
+
+# Android artifacts
+*.apk
+*.ap_
+*.aab
+
+# NDK / CMake
+.cxx/
+**/.cxx/
+.externalNativeBuild/
+**/.externalNativeBuild/
+
+# Logs
+*.log

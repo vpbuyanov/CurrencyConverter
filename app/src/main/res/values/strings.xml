@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">currencyconverter</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="hint_amount">Amount</string>
+    <string name="hint_converted_amount">Converted amount</string>
+    <string name="label_result">Result</string>
+    <string name="usdt_transfer_enabled">USDT Transfer Enabled</string>
+    <string name="usdt_icon_content_description">USDT transfer</string>
+    <string name="error_no_rate">No rate for selected currency</string>
+    <string name="error_invalid_amount">Enter a valid amount</string>
+    <string name="error_refresh_failed">Unable to refresh rates, using cached data</string>
+    <string name="refresh_rates">Refresh rates</string>
+    <string name="refresh_too_soon">Rates were updated less than an hour ago</string>
+    <string name="result_format">%1$.2f %2$s = %3$.2f %4$s (%5$.2f USDT)</string>
+
+    <string-array name="currencies">
+        <item>USD</item>
+        <item>EUR</item>
+        <item>GBP</item>
+        <item>TRY</item>
+        <item>RUB</item>
+        <item>DKK</item>
+        <item>SEK</item>
+        <item>AUD</item>
+        <item>CAD</item>
+        <item>JPY</item>
+    </string-array>
+
+</resources>
