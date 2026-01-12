@@ -26,6 +26,8 @@ Debug APK появится в `app/build/outputs/apk/debug/app-debug.apk`.
 
 В CI (GitHub Actions) APK доступен в Artifacts у последнего workflow run.
 
+А также APK file есть в релизах
+
 ## Запуск на эмуляторе/устройстве
 
 1. Запусти эмулятор в Android Studio (`Tools → Device Manager`) или подключи телефон с включённым USB debugging.
