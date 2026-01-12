@@ -4,7 +4,7 @@
 GRADLEW ?= ./gradlew
 GRADLE_ARGS ?= --no-daemon
 
-APP_ID ?= com.example.currencyconverter1
+APP_ID ?= com.currencyconverter
 MAIN_ACTIVITY ?= .MainActivity
 
 SDK_DIR ?= $(shell awk -F= '/^sdk.dir=/{print $$2}' local.properties 2>/dev/null)

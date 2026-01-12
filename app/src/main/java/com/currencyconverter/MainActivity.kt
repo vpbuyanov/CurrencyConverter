@@ -2,20 +2,28 @@ package com.currencyconverter
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.*
-import android.widget.AdapterView.OnItemSelectedListener
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     /**
-     * Справочник "сколько единиц валюты за 1 USDT".
-     * Используется как fallback до загрузки актуальных курсов.
+     * Fallback rates: units per 1 USDT.
      */
     private val fallbackRates: Map<String, Double> = mapOf(
         "USD" to 1.00,
@@ -29,45 +37,93 @@ class MainActivity : AppCompatActivity() {
         "CAD" to 1.36,
         "JPY" to 155.00,
     )
+
+    private val currencyNames: Map<String, String> = mapOf(
+        "USD" to "US Dollar",
+        "EUR" to "Euro",
+        "GBP" to "British Pound",
+        "TRY" to "Turkish Lira",
+        "RUB" to "Russian Ruble",
+        "DKK" to "Danish Krone",
+        "SEK" to "Swedish Krona",
+        "AUD" to "Australian Dollar",
+        "CAD" to "Canadian Dollar",
+        "JPY" to "Japanese Yen",
+    )
+
     private val convertRateUSDT = fallbackRates.toMutableMap()
     private var baseCurrency = "TRY"
     private var convertedToCurrency = "RUB"
+    private var inputValue = ""
+    private var lastSavedSignature: String? = null
 
-    lateinit var et_firstConversion: EditText
-    lateinit var et_secondConversion: TextView
-    lateinit var et_resultText: TextView
-    private lateinit var refreshButton: Button
+    private lateinit var inputAmountView: TextView
+    private lateinit var outputAmountView: TextView
+    private lateinit var resultTextView: TextView
+    private lateinit var fromNameView: TextView
+    private lateinit var toNameView: TextView
+    private lateinit var refreshButton: ImageButton
+    private lateinit var swapButton: ImageButton
+
+    private lateinit var spinnerFrom: Spinner
+    private lateinit var spinnerTo: Spinner
+
+    private lateinit var historyList: LinearLayout
+    private lateinit var settingsText: TextView
+    private lateinit var tabConvert: Button
+    private lateinit var tabHistory: Button
+    private lateinit var tabSettings: Button
+    private lateinit var screenConvert: View
+    private lateinit var screenHistory: View
+    private lateinit var screenSettings: View
+
     private lateinit var repository: RatesRepository
+    private lateinit var conversionDao: ConversionDao
+
+    private var inputJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        et_firstConversion = findViewById(R.id.et_firstConversion)
-        et_secondConversion = findViewById(R.id.et_secondConversion)
-        et_resultText = findViewById(R.id.et_result)
+        inputAmountView = findViewById(R.id.input_amount)
+        outputAmountView = findViewById(R.id.output_amount)
+        resultTextView = findViewById(R.id.result_text)
+        fromNameView = findViewById(R.id.from_currency_name)
+        toNameView = findViewById(R.id.to_currency_name)
         refreshButton = findViewById(R.id.button_refresh)
+        swapButton = findViewById(R.id.button_swap)
+
+        spinnerFrom = findViewById(R.id.spinner_firstConversion)
+        spinnerTo = findViewById(R.id.spinner_secondConversion)
+
+        historyList = findViewById(R.id.history_list)
+        settingsText = findViewById(R.id.settings_text)
+        tabConvert = findViewById(R.id.tab_convert)
+        tabHistory = findViewById(R.id.tab_history)
+        tabSettings = findViewById(R.id.tab_settings)
+        screenConvert = findViewById(R.id.screen_convert)
+        screenHistory = findViewById(R.id.screen_history)
+        screenSettings = findViewById(R.id.screen_settings)
 
         spinnerSetup()
-        textChangedStuff()
+        setupKeypad()
         initRates()
         setupRefresh()
+        setupTabs()
+        updateInputDisplay()
     }
 
     private fun calculateConversion() {
-        val leftCurrency = baseCurrency
-        if (et_firstConversion.text.isEmpty()) {
+        if (inputValue.isBlank() || inputValue == ".") {
+            outputAmountView.text = formatAmount(0.0)
+            resultTextView.text = ""
             return
         }
-        val leftAmount = parseAmount(et_firstConversion.text.toString()) ?: run {
-            Toast.makeText(applicationContext, getString(R.string.error_invalid_amount), Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
-        val rightCurrency = convertedToCurrency
 
-        val leftRateToUsdt = convertRateUSDT[leftCurrency]
-        val rightRateToUsdt = convertRateUSDT[rightCurrency]
+        val leftAmount = parseAmount(inputValue) ?: return
+        val leftRateToUsdt = convertRateUSDT[baseCurrency]
+        val rightRateToUsdt = convertRateUSDT[convertedToCurrency]
 
         if (leftRateToUsdt == null || rightRateToUsdt == null) {
             Toast.makeText(applicationContext, getString(R.string.error_no_rate), Toast.LENGTH_SHORT)
@@ -75,24 +131,34 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val res = convertAmount(leftAmount, leftCurrency, rightCurrency, convertRateUSDT) ?: return
+        val res = convertAmount(leftAmount, baseCurrency, convertedToCurrency, convertRateUSDT) ?: return
         val leftToUsdtAmount = leftAmount / leftRateToUsdt
 
-        et_secondConversion.text = String.format(Locale.getDefault(), "%.2f", res)
-        et_resultText.text = String.format(
+        outputAmountView.text = formatAmount(res)
+        resultTextView.text = String.format(
             Locale.getDefault(),
             getString(R.string.result_format),
             leftAmount,
-            leftCurrency,
+            baseCurrency,
             res,
-            rightCurrency,
+            convertedToCurrency,
             leftToUsdtAmount
         )
+        saveConversionIfNew(leftAmount, baseCurrency, convertedToCurrency, res)
+    }
+
+    private fun scheduleConversion() {
+        inputJob?.cancel()
+        inputJob = lifecycleScope.launch {
+            delay(INPUT_DEBOUNCE_MILLIS)
+            calculateConversion()
+        }
     }
 
     private fun initRates() {
         val database = AppDatabase.build(this)
         repository = RatesRepository(database.currencyRateDao())
+        conversionDao = database.conversionDao()
 
         lifecycleScope.launch {
             val cachedRates = repository.getCachedRates(CONVERSION_BASE)
@@ -112,40 +178,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun refreshRatesIfStale(
+    private fun refreshRatesIfStale(
         force: Boolean,
         hadCachedRates: Boolean,
         showTooSoonMessage: Boolean = false
     ) {
-        val lastUpdated = repository.getLastUpdated(CONVERSION_BASE) ?: 0L
-        val now = System.currentTimeMillis()
-        val isStale = now - lastUpdated >= ONE_HOUR_MILLIS
-        if (!force && !isStale) {
-            if (showTooSoonMessage) {
+        lifecycleScope.launch {
+            val lastUpdated = repository.getLastUpdated(CONVERSION_BASE) ?: 0L
+            val now = System.currentTimeMillis()
+            val isStale = now - lastUpdated >= REFRESH_INTERVAL_MILLIS
+            if (!force && !isStale) {
+                if (showTooSoonMessage) {
+                    Toast.makeText(
+                        applicationContext,
+                        getString(R.string.refresh_too_soon),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return@launch
+            }
+
+            val fetchedRates = runCatching { repository.fetchRates(API_BASE) }.getOrNull()
+            val normalizedRates = fetchedRates?.rates?.let { rates ->
+                convertRatesToBase(CONVERSION_BASE, API_BASE, rates)
+            }
+            if (!normalizedRates.isNullOrEmpty()) {
+                val updatedAtMillis = fetchedRates.updatedAtSeconds * 1000
+                repository.replaceRates(CONVERSION_BASE, normalizedRates, updatedAtMillis)
+                updateRates(normalizedRates)
+                scheduleConversion()
+            } else if (!hadCachedRates) {
                 Toast.makeText(
                     applicationContext,
-                    getString(R.string.refresh_too_soon),
+                    getString(R.string.error_refresh_failed),
                     Toast.LENGTH_SHORT
                 ).show()
             }
-            return
-        }
-
-        val fetchedRates = runCatching { repository.fetchRates(API_BASE) }.getOrNull()
-        val normalizedRates = fetchedRates?.rates?.let { rates ->
-            convertRatesToBase(CONVERSION_BASE, API_BASE, rates)
-        }
-        if (!normalizedRates.isNullOrEmpty()) {
-            val updatedAtMillis = fetchedRates.updatedAtSeconds * 1000
-            repository.replaceRates(CONVERSION_BASE, normalizedRates, updatedAtMillis)
-            updateRates(normalizedRates)
-            calculateConversion()
-        } else if (!hadCachedRates) {
-            Toast.makeText(
-                applicationContext,
-                getString(R.string.error_refresh_failed),
-                Toast.LENGTH_SHORT
-            ).show()
+            updateSettingsInfo()
         }
     }
 
@@ -157,27 +226,7 @@ class MainActivity : AppCompatActivity() {
         convertRateUSDT.putAll(rates)
     }
 
-
-    private fun textChangedStuff() {
-        et_firstConversion.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                calculateConversion()
-            }
-
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-            }
-
-        })
-
-    }
-
     private fun spinnerSetup() {
-        val spinner: Spinner = findViewById(R.id.spinner_firstConversion)
-        val spinner2: Spinner = findViewById(R.id.spinner_secondConversion)
-
         val adapter = ArrayAdapter.createFromResource(
             this,
             R.array.currencies,
@@ -186,15 +235,16 @@ class MainActivity : AppCompatActivity() {
             itemAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
 
-        spinner.adapter = adapter
-        spinner2.adapter = adapter
+        spinnerFrom.adapter = adapter
+        spinnerTo.adapter = adapter
 
-        setSpinnerSelection(spinner, baseCurrency)
-        setSpinnerSelection(spinner2, convertedToCurrency)
+        setSpinnerSelection(spinnerFrom, baseCurrency)
+        setSpinnerSelection(spinnerTo, convertedToCurrency)
+        updateCurrencyNames()
 
-        spinner.onItemSelectedListener = (object : OnItemSelectedListener {
+        spinnerFrom.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                // No-op to keep the last selection.
+                // No-op.
             }
 
             override fun onItemSelected(
@@ -204,14 +254,14 @@ class MainActivity : AppCompatActivity() {
                 id: Long
             ) {
                 baseCurrency = parent?.getItemAtPosition(position).toString()
-                calculateConversion()
+                updateCurrencyNames()
+                scheduleConversion()
             }
+        }
 
-        })
-
-        spinner2.onItemSelectedListener = (object : OnItemSelectedListener {
+        spinnerTo.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                // No-op to keep the last selection.
+                // No-op.
             }
 
             override fun onItemSelected(
@@ -221,10 +271,197 @@ class MainActivity : AppCompatActivity() {
                 id: Long
             ) {
                 convertedToCurrency = parent?.getItemAtPosition(position).toString()
-                calculateConversion()
+                updateCurrencyNames()
+                scheduleConversion()
+            }
+        }
+
+        swapButton.setOnClickListener {
+            val temp = baseCurrency
+            baseCurrency = convertedToCurrency
+            convertedToCurrency = temp
+            setSpinnerSelection(spinnerFrom, baseCurrency)
+            setSpinnerSelection(spinnerTo, convertedToCurrency)
+            updateCurrencyNames()
+            scheduleConversion()
+        }
+    }
+
+    private fun updateCurrencyNames() {
+        fromNameView.text = currencyNames[baseCurrency] ?: baseCurrency
+        toNameView.text = currencyNames[convertedToCurrency] ?: convertedToCurrency
+    }
+
+    private fun setupKeypad() {
+        val mapping = listOf(
+            R.id.key_1 to "1",
+            R.id.key_2 to "2",
+            R.id.key_3 to "3",
+            R.id.key_4 to "4",
+            R.id.key_5 to "5",
+            R.id.key_6 to "6",
+            R.id.key_7 to "7",
+            R.id.key_8 to "8",
+            R.id.key_9 to "9",
+            R.id.key_0 to "0",
+            R.id.key_dot to "."
+        )
+
+        for ((id, value) in mapping) {
+            findViewById<Button>(id).setOnClickListener {
+                appendInput(value)
+            }
+        }
+
+        findViewById<Button>(R.id.key_clear).setOnClickListener {
+            clearInput()
+        }
+    }
+
+    private fun appendInput(value: String) {
+        if (value == "." && inputValue.contains(".")) {
+            return
+        }
+        inputValue = if (inputValue.isEmpty()) {
+            if (value == ".") "0." else value
+        } else if (inputValue == "0" && value != ".") {
+            value
+        } else {
+            inputValue + value
+        }
+        updateInputDisplay()
+        scheduleConversion()
+    }
+
+    private fun clearInput() {
+        inputValue = ""
+        updateInputDisplay()
+        scheduleConversion()
+    }
+
+    private fun updateInputDisplay() {
+        inputAmountView.text = if (inputValue.isEmpty()) "0" else inputValue
+    }
+
+    private fun saveConversionIfNew(
+        amount: Double,
+        fromCurrency: String,
+        toCurrency: String,
+        result: Double
+    ) {
+        if (amount <= 0.0) {
+            return
+        }
+        val signature = String.format(
+            Locale.getDefault(),
+            "%.4f-%s-%.4f-%s",
+            amount,
+            fromCurrency,
+            result,
+            toCurrency
+        )
+        if (signature == lastSavedSignature) {
+            return
+        }
+        lastSavedSignature = signature
+        lifecycleScope.launch {
+            conversionDao.insert(
+                ConversionEntity(
+                    fromCurrency = fromCurrency,
+                    toCurrency = toCurrency,
+                    amount = amount,
+                    result = result,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            if (screenHistory.visibility == View.VISIBLE) {
+                updateHistory()
+            }
+        }
+    }
+
+    private fun setupTabs() {
+        tabConvert.setOnClickListener { showScreen(Screen.CONVERT) }
+        tabHistory.setOnClickListener { showScreen(Screen.HISTORY) }
+        tabSettings.setOnClickListener { showScreen(Screen.SETTINGS) }
+        showScreen(Screen.CONVERT)
+    }
+
+    private fun showScreen(screen: Screen) {
+        screenConvert.visibility = if (screen == Screen.CONVERT) View.VISIBLE else View.GONE
+        screenHistory.visibility = if (screen == Screen.HISTORY) View.VISIBLE else View.GONE
+        screenSettings.visibility = if (screen == Screen.SETTINGS) View.VISIBLE else View.GONE
+
+        if (screen == Screen.HISTORY) {
+            updateHistory()
+        } else if (screen == Screen.SETTINGS) {
+            updateSettingsInfo()
+        }
+    }
+
+    private fun updateHistory() {
+        lifecycleScope.launch {
+            val items = conversionDao.getLatest(HISTORY_LIMIT)
+            historyList.removeAllViews()
+            if (items.isEmpty()) {
+                val emptyView = TextView(this@MainActivity).apply {
+                    text = getString(R.string.history_empty)
+                }
+                historyList.addView(emptyView)
+                return@launch
             }
 
-        })
+            val inflater = LayoutInflater.from(this@MainActivity)
+            for (item in items) {
+                val row = inflater.inflate(R.layout.item_history, historyList, false)
+                val left = row.findViewById<TextView>(R.id.history_left)
+                val right = row.findViewById<TextView>(R.id.history_right)
+
+                left.text = String.format(
+                    Locale.getDefault(),
+                    "%s %.2f",
+                    item.fromCurrency,
+                    item.amount
+                )
+                right.text = String.format(
+                    Locale.getDefault(),
+                    "%s %.2f",
+                    item.toCurrency,
+                    item.result
+                )
+
+                val params = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                params.bottomMargin = dpToPx(10)
+                row.layoutParams = params
+                historyList.addView(row)
+            }
+        }
+    }
+
+    private fun updateSettingsInfo() {
+        lifecycleScope.launch {
+            val lastUpdated = repository.getLastUpdated(CONVERSION_BASE) ?: 0L
+            val lastUpdatedText = if (lastUpdated == 0L) {
+                getString(R.string.settings_last_update_never)
+            } else {
+                formatTimestamp(lastUpdated)
+            }
+            settingsText.text = getString(R.string.settings_last_update, lastUpdatedText) +
+                "\n" + getString(R.string.settings_refresh_interval)
+        }
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        val density = resources.displayMetrics.density
+        return (dp * density).toInt()
+    }
+
+    private fun formatTimestamp(timestamp: Long): String {
+        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        return formatter.format(Date(timestamp))
     }
 
     private fun parseAmount(rawValue: String): Double? {
@@ -239,9 +476,17 @@ class MainActivity : AppCompatActivity() {
         spinner.setSelection(position)
     }
 
+    private fun formatAmount(value: Double): String {
+        return String.format(Locale.getDefault(), "%.2f", value)
+    }
+
+    private enum class Screen { CONVERT, HISTORY, SETTINGS }
+
     companion object {
         private const val API_BASE = "USD"
         private const val CONVERSION_BASE = "USDT"
-        private const val ONE_HOUR_MILLIS = 60 * 60 * 1000L
+        private const val REFRESH_INTERVAL_MILLIS = 24 * 60 * 60 * 1000L
+        private const val HISTORY_LIMIT = 20
+        private const val INPUT_DEBOUNCE_MILLIS = 500L
     }
 }

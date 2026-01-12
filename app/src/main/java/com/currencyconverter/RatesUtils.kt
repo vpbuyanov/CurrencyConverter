@@ -8,7 +8,7 @@ internal fun convertRatesToBase(
     if (targetBase == sourceBase) {
         return rates.toMap()
     }
-    val targetRate = rates[targetBase] ?: return null
+    val targetRate = rates[targetBase] ?: if (targetBase == "USDT" && sourceBase == "USD") 1.0 else return null
     val normalized = mutableMapOf<String, Double>()
     for ((code, rate) in rates) {
         normalized[code] = rate / targetRate

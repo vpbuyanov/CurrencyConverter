@@ -1,111 +1,317 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="?attr/actionBarSize">
+    android:orientation="vertical"
+    android:padding="12dp">
 
-    <Spinner
-        android:id="@+id/spinner_secondConversion"
-        android:layout_width="108dp"
-        android:layout_height="65dp"
-        android:layout_marginTop="108dp"
-        android:layout_marginEnd="24dp"
-        android:textAlignment="center"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/et_secondConversion"
-        android:layout_width="141dp"
-        android:layout_height="62dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="476dp"
-        android:background="@android:drawable/edit_text"
-        android:hint="@string/hint_converted_amount"
-        android:importantForAutofill="no"
-        android:textAlignment="center"
-        android:textColor="#000000"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <TextView
-        android:id="@+id/et_result"
-        android:layout_width="325dp"
-        android:layout_height="159dp"
-        android:layout_marginEnd="40dp"
-        android:layout_marginBottom="240dp"
-        android:background="@android:drawable/edit_text"
-        android:hint="@string/label_result"
-        android:importantForAutofill="no"
-        android:lines="4"
-        android:textAlignment="textStart"
-        android:textColor="#000000"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <EditText
-        android:id="@+id/et_firstConversion"
-        android:layout_width="141dp"
-        android:layout_height="62dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="476dp"
-        android:hint="@string/hint_amount"
-        android:inputType="number|numberDecimal"
-        android:textAlignment="center"
-        android:textColor="#000000"
-        android:textSize="20sp"
-        android:importantForAutofill="no"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <ImageView
-        android:id="@+id/usdtTransfer"
-        android:layout_width="80dp"
-        android:layout_height="57dp"
-        android:layout_marginStart="52dp"
-        android:layout_marginTop="32dp"
-        android:contentDescription="@string/usdt_icon_content_description"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/usdt" />
-
-    <Spinner
-        android:id="@+id/spinner_firstConversion"
-        android:layout_width="108dp"
-        android:layout_height="65dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="108dp"
-        android:scrollbarSize="10dp"
-        android:textAlignment="center"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <CheckedTextView
-        android:id="@+id/checkedTextView"
-        android:layout_width="160dp"
-        android:layout_height="57dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="32dp"
-        android:text="@string/usdt_transfer_enabled"
-        android:textSize="20sp"
-        app:layout_constraintStart_toEndOf="@+id/usdtTransfer"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/button_refresh"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:id="@+id/tab_bar"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="24dp"
-        android:text="@string/refresh_rates"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:orientation="horizontal">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <Button
+            android:id="@+id/tab_convert"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/tab_convert" />
+
+        <Button
+            android:id="@+id/tab_history"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/tab_history" />
+
+        <Button
+            android:id="@+id/tab_settings"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/tab_settings" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/screen_convert"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/app_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                    android:layout_weight="1"
+                    android:text="@string/app_title"
+                    android:textColor="#2E2A33"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <ImageButton
+                    android:id="@+id/button_refresh"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:background="@drawable/icon_button_background"
+                    android:contentDescription="@string/refresh_rates"
+                    android:src="@android:drawable/ic_popup_sync" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/card_background"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Spinner
+                        android:id="@+id/spinner_firstConversion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:id="@+id/from_currency_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:textColor="#6A6370"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/input_amount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                    android:gravity="end"
+                    android:text="0"
+                    android:textColor="#5A4D7A"
+                    android:textSize="32sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/button_swap"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="-10dp"
+                android:background="@drawable/icon_button_background"
+                android:contentDescription="@string/swap_currencies"
+                android:src="@android:drawable/ic_menu_rotate" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="-10dp"
+                android:background="@drawable/card_background"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Spinner
+                        android:id="@+id/spinner_secondConversion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:id="@+id/to_currency_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:textColor="#6A6370"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/output_amount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                    android:gravity="end"
+                    android:text="0.00"
+                    android:textColor="#2E2A33"
+                    android:textSize="32sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/result_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:textColor="#6A6370"
+                android:textSize="14sp" />
+
+            <GridLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="20dp"
+                android:alignmentMode="alignMargins"
+                android:columnCount="3"
+                android:rowCount="4"
+                android:useDefaultMargins="true">
+
+                <Button
+                    android:id="@+id/key_1"
+                    style="@style/KeypadButton"
+                    android:text="1" />
+
+                <Button
+                    android:id="@+id/key_2"
+                    style="@style/KeypadButton"
+                    android:text="2" />
+
+                <Button
+                    android:id="@+id/key_3"
+                    style="@style/KeypadButton"
+                    android:text="3" />
+
+                <Button
+                    android:id="@+id/key_4"
+                    style="@style/KeypadButton"
+                    android:text="4" />
+
+                <Button
+                    android:id="@+id/key_5"
+                    style="@style/KeypadButton"
+                    android:text="5" />
+
+                <Button
+                    android:id="@+id/key_6"
+                    style="@style/KeypadButton"
+                    android:text="6" />
+
+                <Button
+                    android:id="@+id/key_7"
+                    style="@style/KeypadButton"
+                    android:text="7" />
+
+                <Button
+                    android:id="@+id/key_8"
+                    style="@style/KeypadButton"
+                    android:text="8" />
+
+                <Button
+                    android:id="@+id/key_9"
+                    style="@style/KeypadButton"
+                    android:text="9" />
+
+                <Button
+                    android:id="@+id/key_dot"
+                    style="@style/KeypadButton"
+                    android:text="." />
+
+                <Button
+                    android:id="@+id/key_0"
+                    style="@style/KeypadButton"
+                    android:text="0" />
+
+                <Button
+                    android:id="@+id/key_clear"
+                    style="@style/KeypadButtonPrimary"
+                    android:text="C" />
+            </GridLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/screen_history"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/history_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/history_title"
+                android:textSize="20sp" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="12dp">
+
+                <LinearLayout
+                    android:id="@+id/history_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                    android:orientation="vertical" />
+            </ScrollView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/screen_settings"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/settings_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/settings_title"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/settings_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:text="@string/settings_loading" />
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>
